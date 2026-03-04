@@ -1,0 +1,8 @@
+# Ignore .claude folder in root
+.claude/
+
+# Backend specific ignores
+backend/.env
+backend/.env.example
+backend/venv/
+backend/.idea/

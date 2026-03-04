@@ -1,0 +1,21 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: ai_study_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ai_study_db}
+      POSTGRES_USER: ${POSTGRES_USER:-ai_study_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ai_study_password}
+    ports:
+      - "5436:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ai_study_user} -d ${POSTGRES_DB:-ai_study_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
