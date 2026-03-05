@@ -12,10 +12,51 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ai_study_user} -d ${POSTGRES_DB:-ai_study_db}"]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ai_study_user} -d ${POSTGRES_DB:-ai_study_db}" ]
       interval: 10s
       timeout: 5s
       retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ai_study_backend
+    restart: unless-stopped
+    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./backend/.env
+    environment:
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=${POSTGRES_DB:-ai_study_db}
+      - POSTGRES_USER=${POSTGRES_USER:-ai_study_user}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-ai_study_password}
+      - SECRET_KEY=${SECRET_KEY:-django-insecure-key-for-dev}
+      - DEBUG=True
+      - ALLOWED_HOSTS=localhost,127.0.0.1,backend
+      - GROQ_API_KEY=${GROQ_API_KEY:-api-key-here}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ai_study_frontend
+    restart: unless-stopped
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
 
 volumes:
   postgres_data:

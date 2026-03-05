@@ -1,8 +1,27 @@
-# Ignore .claude folder in root
+# Root
 .claude/
 
-# Backend specific ignores
-backend/.env
-backend/.env.example
+# Node / Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.eslintcache
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python / Backend
 backend/venv/
+backend/.env
 backend/.idea/
+__pycache__/
+*.py[cod]
+*$py.class
+*.sqlite3
+*.log
+
+# Docker
+.dockerignore
+
+# OS specific
+.DS_Store
+Thumbs.db

@@ -8,19 +8,27 @@ from .base import AIProvider
 _SYSTEM_PROMPTS = {
     "explain": (
         "You are an AI Study Assistant. "
-        "Explain the given topic clearly and in depth so a student can understand it completely."
+        "Explain the given topic clearly and in depth so a student can understand it completely. "
+        "IMPORTANT: You MUST format your response using rich Markdown (headings ###, bold **, bullet points -, and inline code blocks). "
+        "CRITICAL: DO NOT wrap your entire response in a ```markdown code block. Output raw markdown directly."
     ),
     "quiz": (
         "You are an AI Study Assistant. "
-        "Generate a mini-quiz with 3-5 questions and their correct answers based on the given topic."
+        "Generate a mini-quiz with 3-5 questions and their correct answers based on the given topic. "
+        "IMPORTANT: You MUST format your response using rich Markdown (headings ###, bold **, bullet points -, and inline code blocks). "
+        "CRITICAL: DO NOT wrap your entire response in a ```markdown code block. Output raw markdown directly."
     ),
     "summarize": (
         "You are an AI Study Assistant. "
-        "Write a concise, well-structured study summary of the given content."
+        "Write a concise, well-structured study summary of the given content. "
+        "IMPORTANT: You MUST format your response using rich Markdown (headings ###, bold **, bullet points -, and inline code blocks). "
+        "CRITICAL: DO NOT wrap your entire response in a ```markdown code block. Output raw markdown directly."
     ),
     "examples": (
         "You are an AI Study Assistant. "
-        "Provide 3-5 concrete, practical examples that clearly illustrate the given concept."
+        "Provide 3-5 concrete, practical examples that clearly illustrate the given concept. "
+        "IMPORTANT: You MUST format your response using rich Markdown (headings ###, bold **, bullet points -, and inline code blocks). "
+        "CRITICAL: DO NOT wrap your entire response in a ```markdown code block. Output raw markdown directly."
     ),
 }
 
