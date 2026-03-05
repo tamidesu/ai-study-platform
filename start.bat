@@ -1,0 +1,6 @@
+@echo off
+echo Запуск Backend...
+start cmd /k "cd backend && venv\Scripts\python.exe manage.py runserver 8000"
+
+echo Запуск Frontend...
+start cmd /k "cd ""frontend (1)\frontend"" && npm run dev"
