@@ -1,16 +1,20 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../store/AuthContext'
+import { useToast } from '../../store/ToastContext'
 import ReactMarkdown from 'react-markdown'
 import api from '../../api/axios'
+import ConfirmModal from '../../components/ConfirmModal'
 
 export default function NoteDetail() {
   const { id } = useParams()
   const { user, isAdmin } = useAuth()
   const navigate = useNavigate()
+  const toast = useToast()
   const [note, setNote] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [confirmOpen, setConfirmOpen] = useState(false)
 
   useEffect(() => {
     api.get(`/notes/${id}/`).then(res => {
@@ -23,12 +27,13 @@ export default function NoteDetail() {
   }, [id])
 
   const handleDelete = async () => {
-    if (!window.confirm('Delete this note permanently?')) return
     try {
       await api.delete(`/notes/${id}/`)
+      toast('Note deleted', 'success')
       navigate('/notes')
     } catch {
-      alert('Failed to delete')
+      toast('Failed to delete note', 'error')
+      setConfirmOpen(false)
     }
   }
 
@@ -50,6 +55,15 @@ export default function NoteDetail() {
 
   return (
     <div className="page-container max-w-3xl">
+      <ConfirmModal
+        isOpen={confirmOpen}
+        title="Delete Note Permanently"
+        message="This action cannot be undone. The note will be permanently removed."
+        confirmLabel="Delete"
+        onConfirm={handleDelete}
+        onCancel={() => setConfirmOpen(false)}
+      />
+
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-sm text-ink-500 mb-6">
         <Link to="/notes" className="hover:text-ink-300 transition-colors">Notes</Link>
@@ -68,7 +82,7 @@ export default function NoteDetail() {
               <Link to={`/notes/${id}/edit`} className="btn-secondary text-xs px-3 py-1.5">
                 ✏️ Edit
               </Link>
-              <button onClick={handleDelete} className="btn-danger text-xs px-3 py-1.5">
+              <button onClick={() => setConfirmOpen(true)} className="btn-danger text-xs px-3 py-1.5">
                 🗑 Delete
               </button>
             </div>

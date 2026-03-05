@@ -1,11 +1,15 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import api from '../../api/axios'
+import { useToast } from '../../store/ToastContext'
+import ConfirmModal from '../../components/ConfirmModal'
 
 export default function NoteList() {
   const [notes, setNotes] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [confirmId, setConfirmId] = useState(null)
+  const toast = useToast()
 
   useEffect(() => {
     api.get('/notes/').then(res => {
@@ -19,19 +23,34 @@ export default function NoteList() {
     n.content?.toLowerCase().includes(search.toLowerCase())
   )
 
-  const handleDelete = async (id, e) => {
+  const requestDelete = (id, e) => {
     e.preventDefault()
-    if (!window.confirm('Delete this note?')) return
+    setConfirmId(id)
+  }
+
+  const handleDelete = async () => {
     try {
-      await api.delete(`/notes/${id}/`)
-      setNotes(prev => prev.filter(n => n.id !== id))
+      await api.delete(`/notes/${confirmId}/`)
+      setNotes(prev => prev.filter(n => n.id !== confirmId))
+      toast('Note deleted successfully', 'success')
     } catch {
-      alert('Failed to delete note')
+      toast('Failed to delete note', 'error')
+    } finally {
+      setConfirmId(null)
     }
   }
 
   return (
     <div className="page-container animate-fade-in relative z-10">
+      <ConfirmModal
+        isOpen={confirmId !== null}
+        title="Delete Note"
+        message="This action cannot be undone. The note will be permanently removed."
+        confirmLabel="Delete"
+        onConfirm={handleDelete}
+        onCancel={() => setConfirmId(null)}
+      />
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-8">
         <div>
@@ -128,7 +147,7 @@ export default function NoteList() {
                     </svg>
                   </Link>
                   <button
-                    onClick={e => handleDelete(note.id, e)}
+                    onClick={e => requestDelete(note.id, e)}
                     className="p-1.5 text-ink-400 hover:text-red-500 hover:bg-red-500/10 rounded-md transition-colors"
                     title="Delete Note"
                   >

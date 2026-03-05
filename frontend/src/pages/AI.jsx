@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import api from '../api/axios'
+import { useToast } from '../store/ToastContext'
+import ConfirmModal from '../components/ConfirmModal'
 
 const HistoryItem = ({ item, onDelete, onSave }) => (
   <div className="card p-4 space-y-3 animate-slide-up">
@@ -44,7 +46,10 @@ export default function AIPage() {
   const [history, setHistory] = useState([])
   const [historyLoading, setHistoryLoading] = useState(true)
   const [charCount, setCharCount] = useState(0)
+  const [deleteTargetId, setDeleteTargetId] = useState(null)
+  const [validationError, setValidationError] = useState('')
   const resultRef = useRef(null)
+  const toast = useToast()
 
   useEffect(() => {
     api.get('/ai/history/').then(res => {
@@ -55,17 +60,24 @@ export default function AIPage() {
 
   useEffect(() => {
     setCharCount(prompt.length)
+    if (validationError) setValidationError('')
   }, [prompt])
 
   const handleGenerate = async () => {
-    if (prompt.length < 10) { alert('Prompt must be at least 10 characters'); return }
-    if (prompt.length > 1000) { alert('Prompt is too long (max 1000 chars)'); return }
+    if (prompt.length < 10) {
+      setValidationError('Prompt must be at least 10 characters')
+      return
+    }
+    if (prompt.length > 1000) {
+      setValidationError('Prompt is too long (max 1000 chars)')
+      return
+    }
+    setValidationError('')
     setLoading(true)
     setResult('')
     try {
       const { data } = await api.post('/ai/generate/', { prompt })
       setResult(data.result)
-      // Refresh history
       const hRes = await api.get('/ai/history/')
       setHistory(hRes.data.results || hRes.data)
     } catch (e) {
@@ -75,35 +87,39 @@ export default function AIPage() {
     }
   }
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Delete this request?')) return
+  const requestDelete = (id) => setDeleteTargetId(id)
+
+  const handleDelete = async () => {
     try {
-      await api.delete(`/ai/history/${id}/`)
-      setHistory(prev => prev.filter(h => h.id !== id))
-    } catch { alert('Failed to delete') }
+      await api.delete(`/ai/history/${deleteTargetId}/`)
+      setHistory(prev => prev.filter(h => h.id !== deleteTargetId))
+      toast('Request deleted', 'success')
+    } catch {
+      toast('Failed to delete request', 'error')
+    } finally {
+      setDeleteTargetId(null)
+    }
   }
 
   const handleSave = async (id) => {
     try {
-      // Find the specific AI request in history to copy its content
       const aiRequest = history.find(h => h.id === id)
       if (!aiRequest) return
 
-      // Step 1: Create a new Note with the AI content
       const noteRes = await api.post('/notes/', {
         title: `AI Generation: ${aiRequest.prompt.substring(0, 30)}...`,
         content: `### Prompt: ${aiRequest.prompt}\n\n${aiRequest.result}`,
       })
       const noteId = noteRes.data.id
 
-      // Step 2: Link the AI Request to the newly created Note
       await api.post(`/ai/save/${id}/`, { note_id: noteId })
 
-      // Step 3: Refresh history
       const hRes = await api.get('/ai/history/')
       setHistory(hRes.data.results || hRes.data)
-      alert('Successfully saved as a new Note!')
-    } catch { alert('Failed to save as note') }
+      toast('Saved as a new Note!', 'success')
+    } catch {
+      toast('Failed to save as note', 'error')
+    }
   }
 
   const SUGGESTIONS = [
@@ -115,6 +131,15 @@ export default function AIPage() {
 
   return (
     <div className="page-container max-w-5xl animate-fade-in relative z-10">
+      <ConfirmModal
+        isOpen={deleteTargetId !== null}
+        title="Delete AI Request"
+        message="This request will be permanently removed from your history."
+        confirmLabel="Delete"
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteTargetId(null)}
+      />
+
       <div className="mb-8">
         <p className="text-secondary-500 text-sm font-display font-bold uppercase tracking-widest mb-2 flex items-center gap-2">
           <span className="w-1.5 h-1.5 rounded-full bg-secondary-500 animate-pulse"></span> GENERATOR
@@ -169,13 +194,16 @@ export default function AIPage() {
                 onKeyDown={e => { if (e.key === 'Enter' && e.ctrlKey) handleGenerate() }}
               />
 
+              {validationError && (
+                <p className="text-red-400 text-xs px-2 pb-1">{validationError}</p>
+              )}
+
               <div className="flex items-center justify-between mt-4 border-t border-ink-700/30 pt-3">
                 <div className="flex items-center gap-3">
                   <span className={`text-xs font-medium ${charCount > 900 ? 'text-amber-500' : charCount < 10 && charCount > 0 ? 'text-red-400' : 'text-ink-500'}`}>
                     {charCount}/1000
                   </span>
 
-                  {/* Suggestions dropdown or quick pills */}
                   <div className="hidden md:flex gap-2 ml-4 border-l border-ink-700/50 pl-4">
                     {SUGGESTIONS.slice(0, 2).map((s, idx) => (
                       <button
@@ -237,7 +265,7 @@ export default function AIPage() {
                   <HistoryItem
                     key={item.id}
                     item={item}
-                    onDelete={handleDelete}
+                    onDelete={requestDelete}
                     onSave={handleSave}
                   />
                 ))}

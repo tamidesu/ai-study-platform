@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import api from '../api/axios'
+import { useToast } from '../store/ToastContext'
+import ConfirmModal from '../components/ConfirmModal'
 
 const TABS = ['Users', 'Notes', 'AI Logs']
 
@@ -10,6 +12,8 @@ export default function AdminPanel() {
   const [notes, setNotes] = useState([])
   const [aiLogs, setAiLogs] = useState([])
   const [loading, setLoading] = useState(true)
+  const [deleteNoteId, setDeleteNoteId] = useState(null)
+  const toast = useToast()
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -32,19 +36,35 @@ export default function AdminPanel() {
     try {
       await api.put(`/admin/users/${userId}/block/`, { is_blocked: !isBlocked })
       setUsers(prev => prev.map(u => u.id === userId ? { ...u, is_blocked: !isBlocked } : u))
-    } catch { alert('Failed to update user') }
+      toast(`User ${isBlocked ? 'unblocked' : 'blocked'} successfully`, 'success')
+    } catch {
+      toast('Failed to update user', 'error')
+    }
   }
 
-  const deleteNote = async (id) => {
-    if (!window.confirm('Delete this note?')) return
+  const handleDeleteNote = async () => {
     try {
-      await api.delete(`/admin/notes/${id}/`)
-      setNotes(prev => prev.filter(n => n.id !== id))
-    } catch { alert('Failed to delete') }
+      await api.delete(`/admin/notes/${deleteNoteId}/`)
+      setNotes(prev => prev.filter(n => n.id !== deleteNoteId))
+      toast('Note deleted', 'success')
+    } catch {
+      toast('Failed to delete note', 'error')
+    } finally {
+      setDeleteNoteId(null)
+    }
   }
 
   return (
     <div className="page-container">
+      <ConfirmModal
+        isOpen={deleteNoteId !== null}
+        title="Delete Note"
+        message="This note will be permanently removed. This action cannot be undone."
+        confirmLabel="Delete"
+        onConfirm={handleDeleteNote}
+        onCancel={() => setDeleteNoteId(null)}
+      />
+
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-2">
           <span className="text-2xl">👑</span>
@@ -160,7 +180,7 @@ export default function AdminPanel() {
                     </div>
                     <div className="col-span-12 sm:col-span-2 flex justify-end">
                       <button
-                        onClick={() => deleteNote(n.id)}
+                        onClick={() => setDeleteNoteId(n.id)}
                         className="btn-danger text-xs px-3 py-1.5"
                       >
                         Delete
